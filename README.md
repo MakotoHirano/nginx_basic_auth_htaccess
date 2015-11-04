@@ -22,7 +22,7 @@ The configuration directive is like nginx_basic_auth module of official module.
 #### Example
 For example, if you want to set basic auth. user `hoge` and password `fuga` for the directory `/var/www/html/dir1`
 
-1. make htpasswd file.
+ 1. make htpasswd file.
 
 ```
 $ cd /var/ww/html/dir1
@@ -32,7 +32,7 @@ New password:
 Re-type new password:
 ```
 
-2. setup configuration file like below.
+ 2. setup configuration file like below.
 
 ```
 location / {
@@ -41,7 +41,7 @@ location / {
 }
 ```
 
-3. protect to be seen by users.
+ 3. protect to be seen by users.
 
 ```
 location ~ /\. {
