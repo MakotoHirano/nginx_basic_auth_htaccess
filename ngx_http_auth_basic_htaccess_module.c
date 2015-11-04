@@ -122,10 +122,14 @@ static ngx_int_t ngx_http_auth_basic_htaccess_handler(ngx_http_request_t *r)
                                                  &realm);
     }
 
+    htaccess_path = get_htaccess_file_path(r, alcf->user_file);
+    if (htaccess_path.len == 0) {
+        return NGX_DECLINED;
+    }
+
     rc = ngx_http_auth_basic_user(r);
 
     if (rc == NGX_DECLINED) {
-
         ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
                       "no user/password was provided for basic authentication");
 
@@ -134,15 +138,6 @@ static ngx_int_t ngx_http_auth_basic_htaccess_handler(ngx_http_request_t *r)
 
     if (rc == NGX_ERROR) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
-    }
-
-    // if (ngx_http_complex_value(r, &alcf->user_file, &user_file) != NGX_OK) {
-    //     return NGX_ERROR;
-    // }
-
-    htaccess_path = get_htaccess_file_path(r, alcf->user_file);
-    if (htaccess_path.len == 0) {
-        return NGX_DECLINED;
     }
 
     fd = ngx_open_file(htaccess_path.data, NGX_FILE_RDONLY, NGX_FILE_OPEN, 0);
@@ -445,7 +440,7 @@ static ngx_str_t get_htaccess_file_path(ngx_http_request_t *r, ngx_str_t user_fi
 
     char *filename = NULL;
     FILE *file;
-    int i, size;
+    int i, size, not_found_flg=0;
 
     while(1) {
         for (i=strlen(buff); i>0; i--) {
@@ -455,8 +450,7 @@ static ngx_str_t get_htaccess_file_path(ngx_http_request_t *r, ngx_str_t user_fi
         }
 
         if ((i + 1) < (path.len - r->uri.len)) {
-            path.data = NULL;
-            path.len = 0;
+            not_found_flg = 1;
             break;
         }
 
@@ -472,11 +466,11 @@ static ngx_str_t get_htaccess_file_path(ngx_http_request_t *r, ngx_str_t user_fi
             if ((file = fopen(filename, "r")) != NULL) {
                 path.data = filename;
                 path.len = strlen(filename);
+                not_found_flg = 0;
                 fclose(file);
                 break;
             } else {
-                path.data = NULL;
-                path.len = 0;
+                not_found_flg = 1;
             }
 
             buff[i] = '\0';
@@ -484,6 +478,11 @@ static ngx_str_t get_htaccess_file_path(ngx_http_request_t *r, ngx_str_t user_fi
                  ngx_pfree(r->pool, filename);
             }
         }
+    }
+
+    if (not_found_flg == 1) {
+        path.data = NULL;
+        path.len = 0;
     }
 
     if (buff != NULL) {
